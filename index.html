@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Crime Location Predictor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            padding: 20px;
+            background-color: #f4f4f4;
+            text-align: center;
+        }
+        h2 {
+            color: #333;
+        }
+        form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+            text-align: left;
+            width: 300px;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+        select, input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        input[type="submit"], .back-button {
+            background: #28a745;
+            color: white;
+            font-size: 16px;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+        }
+        .back-button {
+            background: #007bff;
+        }
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            display: none;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            text-align: left;
+        }
+        .result-box h3 {
+            margin-bottom: 10px;
+        }
+        .prediction-item {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Crime Location Type Predictor</h2>
+
+    <form id="predictionForm">
+        <label for="police_station">Police Station:</label>
+        <select name="police_station" id="police_station" required onchange="updateCrimeOptions()">
+            <option value="Anjuna_Ps">Anjuna Police Station</option>
+            <option value="Mapusa_Ps">Mapusa Police Station</option>
+            <option value="Colvale_PS">Colvale Police Station</option>
+        </select>
+
+        <label for="year">Year:</label>
+        <select name="year" required>
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+            <option value="2027">2027</option>
+        </select>
+
+        <label for="crime_head">Crime Type:</label>
+        <select name="crime_head" id="crime_head" required></select>
+
+        <label for="week_no">Week Number:</label>
+        <select name="week_no" required>
+            {% for i in range(1, 53) %}
+            <option value="{{ i }}">{{ i }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="crowd_density">Crowd Density:</label>
+        <select name="crowd_density" required>
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+        </select>
+
+        <label for="model">Choose Model:</label>
+        <select name="model">
+            <option value="rf">Random Forest</option>
+            <option value="dt">Decision Tree</option>
+        </select>
+
+        <input type="submit" value="Predict">
+    </form>
+
+    <div id="result" class="result-box">
+        <h3>Top Predicted Crime Locations</h3>
+        <div id="predictionList"></div>
+        <button class="back-button" onclick="goBack()">Predict Again</button>
+    </div>
+
+    <script>
+        // Define crime type options
+        const allCrimeTypes = [
+            "Theft (Robbery)",
+            "Theft (HBT By Night)",
+            "Theft (Auto Theft)",
+            "Theft (House Theft)",
+            "Theft (Snatching)",
+            "Theft (HBT Day)",
+            "Assault (Hurt)",
+            "Drug Related (NDPS)"
+        ];
+
+        const colvaleCrimeTypes = [
+            "Theft (Robbery)",
+            "Theft (Auto Theft)",
+            "Theft (House Theft)",
+            "Theft (HBT Day)",
+            "Assault (Hurt)",
+            "Drug Related (NDPS)"
+        ];
+
+        // Function to update crime type options dynamically
+        function updateCrimeOptions() {
+            const policeStation = document.getElementById("police_station").value;
+            const crimeSelect = document.getElementById("crime_head");
+
+            // Clear existing options
+            crimeSelect.innerHTML = "";
+
+            // Choose the right crime type list
+            const crimeList = (policeStation === "Colvale_PS") ? colvaleCrimeTypes : allCrimeTypes;
+
+            // Populate dropdown with selected options
+            crimeList.forEach(crime => {
+                const option = document.createElement("option");
+                option.value = crime;
+                option.textContent = crime;
+                crimeSelect.appendChild(option);
+            });
+        }
+
+        // Initialize crime type options on page load
+        updateCrimeOptions();
+
+        document.getElementById("predictionForm").onsubmit = function(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+
+            fetch("/predict", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                let predictionsHTML = "";
+                data.forEach(item => {
+                    predictionsHTML += `<p class="prediction-item">${item.crime_location} - <b>${item.probability}%</b></p>`;
+                });
+
+                document.getElementById("predictionList").innerHTML = predictionsHTML;
+                document.getElementById("predictionForm").style.display = "none";
+                document.getElementById("result").style.display = "block";
+            });
+        };
+
+        function goBack() {
+            document.getElementById("predictionForm").style.display = "block";
+            document.getElementById("result").style.display = "none";
+        }
+    </script>
+
+</body>
+</html>
